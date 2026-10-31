@@ -1,0 +1,311 @@
+<Window x:Class="AppDock.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AppDock Settings"
+        Width="820" Height="820" MinWidth="560" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="{StaticResource UiFont}">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel MaxWidth="760" Margin="32,20,32,32">
+
+      <!-- Header -->
+      <Grid Margin="0,0,0,4">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Image Source="/Assets/AppDock.png" Width="44" Height="44" Margin="0,0,16,0" RenderOptions.BitmapScalingMode="HighQuality" />
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+          <TextBlock Text="AppDock" FontFamily="{StaticResource DisplayFont}" FontSize="28" FontWeight="SemiBold" />
+          <TextBlock x:Name="StatusText" Style="{StaticResource CardDescription}" FontSize="13" AutomationProperties.LiveSetting="Polite" />
+        </StackPanel>
+      </Grid>
+
+      <!-- App -->
+      <TextBlock Text="App to dock" Style="{StaticResource SectionHeader}" />
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE7C4;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Application" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="AppDock follows this app's main window, also after it restarts." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <ComboBox x:Name="ProfileBox" Width="200" DisplayMemberPath="Name" SelectionChanged="OnProfileChanged"
+                      AutomationProperties.Name="Application to dock" />
+            <Button x:Name="PickButton" Content="Choose window..." Margin="8,0,0,0" Click="OnPickClicked"
+                    ToolTip="Click any window on screen to dock its app" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE9D9;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Status" Style="{StaticResource CardTitle}" />
+            <TextBlock x:Name="TargetStatusText" Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <Button x:Name="RemoveProfileButton" Grid.Column="2" Content="Remove app" VerticalAlignment="Center" Click="OnRemoveProfileClicked" />
+        </Grid>
+      </Border>
+
+      <!-- Position -->
+      <TextBlock Text="Position" Style="{StaticResource SectionHeader}" />
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE8A0;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Dock position" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="You can also drag the app to any screen edge, or away from it to float." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <ComboBox x:Name="EdgeBox" Grid.Column="2" Width="200" VerticalAlignment="Center" SelectionChanged="OnEdgeChanged"
+                    AutomationProperties.Name="Dock position">
+            <ComboBoxItem Content="Left" Tag="Left" />
+            <ComboBoxItem Content="Right" Tag="Right" />
+            <ComboBoxItem Content="Top" Tag="Top" />
+            <ComboBoxItem Content="Bottom" Tag="Bottom" />
+            <ComboBoxItem Content="Floating (not docked)" Tag="Floating" />
+          </ComboBox>
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE740;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock x:Name="SizeTitle" Text="Width" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Or drag the app's inner edge while it is docked." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <Slider x:Name="SizeSlider" Width="200" Minimum="160" Maximum="1400" SmallChange="10" LargeChange="50"
+                    IsSnapToTickEnabled="True" TickFrequency="10" ValueChanged="OnSizeChanged" AutomationProperties.Name="Docked size" />
+            <TextBlock x:Name="SizeValue" Width="64" Margin="12,0,0,0" VerticalAlignment="Center" TextAlignment="Right" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE7F4;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Display" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Which screen to dock on." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <ComboBox x:Name="MonitorBox" Grid.Column="2" Width="200" VerticalAlignment="Center" SelectionChanged="OnMonitorChanged"
+                    DisplayMemberPath="Label" AutomationProperties.Name="Display" />
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE718;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Keep on top while docked" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Steps aside automatically for full-screen apps, like the taskbar." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <CheckBox x:Name="TopmostBox" Grid.Column="2" VerticalAlignment="Center" Click="OnTopmostClicked" AutomationProperties.Name="Keep on top while docked" />
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE777;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Dock automatically when the app starts" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Otherwise it starts floating until you dock it." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <CheckBox x:Name="AutoDockBox" Grid.Column="2" VerticalAlignment="Center" Click="OnAutoDockClicked" AutomationProperties.Name="Dock automatically when the app starts" />
+        </Grid>
+      </Border>
+
+      <!-- Shortcut -->
+      <TextBlock Text="Show and hide" Style="{StaticResource SectionHeader}" />
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE765;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Shortcut" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Hiding frees the screen space; showing slides the app back in." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" VerticalAlignment="Center">
+            <ComboBox x:Name="HotkeyModeBox" Width="200" SelectionChanged="OnHotkeyModeChanged" AutomationProperties.Name="Shortcut">
+              <ComboBoxItem Content="Double-tap Ctrl" Tag="Ctrl" />
+              <ComboBoxItem Content="Double-tap Shift" Tag="Shift" />
+              <ComboBoxItem Content="Double-tap Alt" Tag="Alt" />
+              <ComboBoxItem Content="Key combination" Tag="Chord" />
+              <ComboBoxItem Content="None" Tag="Disabled" />
+            </ComboBox>
+            <TextBox x:Name="ChordBox" Width="200" Margin="0,8,0,0" IsReadOnly="True" Visibility="Collapsed"
+                     PreviewKeyDown="OnChordKeyDown" GotKeyboardFocus="OnChordFocus" LostKeyboardFocus="OnChordBlur"
+                     AutomationProperties.Name="Key combination. Focus and press the keys." />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border x:Name="TapSpeedCard" Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE916;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Double-tap speed" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Longest pause allowed between the two taps." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <Slider x:Name="TapSpeedSlider" Width="200" Minimum="150" Maximum="600" TickFrequency="10" IsSnapToTickEnabled="True"
+                    ValueChanged="OnTapSpeedChanged" AutomationProperties.Name="Double-tap speed" />
+            <TextBlock x:Name="TapSpeedValue" Width="64" Margin="12,0,0,0" VerticalAlignment="Center" TextAlignment="Right" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Behaviour -->
+      <TextBlock Text="Behavior" Style="{StaticResource SectionHeader}" />
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE945;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Animations" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Turned off automatically when Windows animation effects are off." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <CheckBox x:Name="AnimationsBox" VerticalAlignment="Center" Click="OnAnimationsClicked" AutomationProperties.Name="Animations" />
+            <Slider x:Name="AnimationSlider" Width="160" Minimum="80" Maximum="500" TickFrequency="10" IsSnapToTickEnabled="True"
+                    Margin="12,0,0,0" ValueChanged="OnAnimationSpeedChanged" AutomationProperties.Name="Animation duration" />
+            <TextBlock x:Name="AnimationValue" Width="64" Margin="12,0,0,0" VerticalAlignment="Center" TextAlignment="Right" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE8B2;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Pause Windows Snap while dragging the app" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="So dropping it at a screen edge docks it instead of snapping it. Snap works as usual for every other window." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <CheckBox x:Name="SuspendSnapBox" Grid.Column="2" VerticalAlignment="Center" Click="OnSuspendSnapClicked" AutomationProperties.Name="Pause Windows Snap while dragging the app" />
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE7C2;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Edge distance" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="How close to an edge you must drop the app for it to dock." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <Slider x:Name="SnapSlider" Width="200" Minimum="12" Maximum="120" TickFrequency="2" IsSnapToTickEnabled="True"
+                    ValueChanged="OnSnapDistanceChanged" AutomationProperties.Name="Edge distance" />
+            <TextBlock x:Name="SnapValue" Width="64" Margin="12,0,0,0" VerticalAlignment="Center" TextAlignment="Right" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- General -->
+      <TextBlock Text="General" Style="{StaticResource SectionHeader}" />
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE7E8;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Start with Windows" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="AppDock runs quietly in the notification area." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <CheckBox x:Name="StartupBox" Grid.Column="2" VerticalAlignment="Center" Click="OnStartupClicked" AutomationProperties.Name="Start with Windows" />
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xEA8F;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Notifications" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Warnings and errors are always shown." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <CheckBox x:Name="NotificationsBox" Grid.Column="2" VerticalAlignment="Center" Click="OnNotificationsClicked" AutomationProperties.Name="Notifications" />
+        </Grid>
+      </Border>
+      <Border Style="{StaticResource Card}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE90F;" Style="{StaticResource CardIcon}" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+            <TextBlock Text="Troubleshooting" Style="{StaticResource CardTitle}" />
+            <TextBlock Text="Logs help support diagnose problems. Reset restores every setting to its default." Style="{StaticResource CardDescription}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="Open logs" Click="OnOpenLogsClicked" />
+            <Button Content="Reset settings" Margin="8,0,0,0" Click="OnResetClicked" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <TextBlock x:Name="FooterText" Style="{StaticResource CardDescription}" Margin="2,16,0,0" />
+    </StackPanel>
+  </ScrollViewer>
+</Window>

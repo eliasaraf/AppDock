@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>AppDock.Core</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AppDock" />
+    <InternalsVisibleTo Include="AppDock.Core.Tests" />
+    <InternalsVisibleTo Include="AppDock.IntegrationTests" />
+  </ItemGroup>
+</Project>

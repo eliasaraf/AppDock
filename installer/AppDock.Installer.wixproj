@@ -1,0 +1,16 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputName>AppDock</OutputName>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <!-- Folder with the published, single-file AppDock.exe (set by build/build.ps1). -->
+    <PublishDir Condition="'$(PublishDir)' == ''">..\artifacts\publish\</PublishDir>
+    <DefineConstants>PublishDir=$(PublishDir);Version=$(Version)</DefineConstants>
+    <!-- ICE91 is informational for per-user installs (the files are meant to live in the user profile). -->
+    <SuppressIces>ICE91</SuppressIces>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

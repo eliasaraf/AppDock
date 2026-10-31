@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AppDock.Core/AppDock.Core.csproj" />
+    <Project Path="src/AppDock/AppDock.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AppDock.Core.Tests/AppDock.Core.Tests.csproj" />
+    <Project Path="tests/AppDock.IntegrationTests/AppDock.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/AppDock.TestTarget/AppDock.TestTarget.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,68 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <!--
+    Per-user install (no administrator rights) to %LOCALAPPDATA%\Programs\AppDock.
+    Upgrades replace older versions in place; settings in %APPDATA%\AppDock are kept.
+  -->
+  <Package Name="AppDock"
+           Manufacturer="Saraf"
+           Version="$(Version)"
+           UpgradeCode="5B3F1C2E-7D84-4F7B-9C55-2E6A1F0D9A41"
+           Scope="perUser"
+           Compressed="yes">
+    <SummaryInformation Description="AppDock - dock any app to a screen edge" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of AppDock is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppDockIcon" SourceFile="..\assets\AppDock.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppDockIcon" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="AppDock" />
+      </Directory>
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppComponents" Directory="INSTALLFOLDER">
+      <Component Id="AppExecutable" Guid="8E2B6F4A-3C1D-4E9B-A7F2-5D0C9B1E6A33">
+        <File Id="AppDockExe" Source="$(PublishDir)AppDock.exe" />
+        <RegistryValue Root="HKCU" Key="Software\AppDock" Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
+        <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+      </Component>
+      <Component Id="LicenseFile" Guid="2F7A9C1E-6B4D-4A8E-9C3F-1E5D7B2A0C44">
+        <File Id="LicenseTxt" Source="..\LICENSE.txt" />
+        <RegistryValue Root="HKCU" Key="Software\AppDock" Name="License" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+      <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder">
+        <Shortcut Id="AppDockShortcut" Name="AppDock" Description="Dock any app to a screen edge"
+                  Target="[INSTALLFOLDER]AppDock.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppDockIcon" />
+        <RegistryValue Root="HKCU" Key="Software\AppDock" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="AppDock">
+      <ComponentGroupRef Id="AppComponents" />
+    </Feature>
+
+    <!--
+      Before files are replaced or removed, ask a running AppDock to exit (it releases screen space and shows the
+      docked app first). On uninstall it also removes its "start with Windows" entry.
+    -->
+    <CustomAction Id="StopAppDockForUpgrade" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]AppDock.exe&quot; --shutdown" Execute="immediate" Return="ignore" />
+    <CustomAction Id="StopAppDockForUninstall" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]AppDock.exe&quot; --uninstall" Execute="immediate" Return="ignore" />
+    <CustomAction Id="LaunchAppDock" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]AppDock.exe&quot;" Execute="immediate" Return="asyncNoWait" />
+    <InstallExecuteSequence>
+      <Custom Action="StopAppDockForUpgrade" Before="InstallValidate" Condition="WIX_UPGRADE_DETECTED" />
+      <Custom Action="StopAppDockForUninstall" Before="InstallValidate" Condition="Installed AND REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+      <Custom Action="LaunchAppDock" After="InstallFinalize" Condition="NOT Installed AND NOT REMOVE AND UILevel &gt;= 4" />
+    </InstallExecuteSequence>
+
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+  </Package>
+</Wix>

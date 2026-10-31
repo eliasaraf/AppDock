@@ -1,0 +1,31 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{csproj,props,targets,wixproj,wxs,xml,xaml,json,yml}]
+indent_size = 2
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_prefer_braces = when_multiline:suggestion
+csharp_style_var_for_built_in_types = true:suggestion
+dotnet_sort_system_directives_first = true
+dotnet_style_readonly_field = true:warning
+# P/Invoke layer intentionally uses Win32 naming.
+dotnet_diagnostic.CA1707.severity = none
+# Interop structs mirror Win32 layouts.
+dotnet_diagnostic.CA1815.severity = none
+dotnet_diagnostic.CA1051.severity = none
+# Classic DllImport is used where delegates/strings are marshalled.
+dotnet_diagnostic.SYSLIB1054.severity = none
+# Localization is out of scope for v1 (English UI).
+dotnet_diagnostic.CA1303.severity = none
+dotnet_diagnostic.CA1305.severity = suggestion
+dotnet_diagnostic.CA1307.severity = suggestion
+dotnet_diagnostic.CA1310.severity = suggestion

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <!-- NotifyIcon and TaskDialog come from Windows Forms. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>AppDock</RootNamespace>
+    <AssemblyName>AppDock</AssemblyName>
+    <ApplicationIcon>..\..\assets\AppDock.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <IsPackable>false</IsPackable>
+    <!-- WinForms and WPF both define some type names; we qualify where needed. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- DPI awareness is declared in app.manifest on purpose: this is a WPF app hosting a few WinForms types. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AppDock.Core\AppDock.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\..\assets\AppDock.ico" Link="Assets\AppDock.ico" />
+    <Resource Include="..\..\assets\AppDock.png" Link="Assets\AppDock.png" />
+    <EmbeddedResource Include="..\..\assets\AppDock.ico" Link="Assets\AppDock.Embedded.ico" LogicalName="AppDock.ico" />
+  </ItemGroup>
+</Project>

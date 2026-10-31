@@ -1,0 +1,6 @@
+<Project>
+  <!-- Isolate the installer from the C# build settings in the repo root. -->
+  <PropertyGroup>
+    <Version Condition="'$(Version)' == ''">1.0.0</Version>
+  </PropertyGroup>
+</Project>

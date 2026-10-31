@@ -1,0 +1,64 @@
+<Window x:Class="AppDock.Views.OnboardingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Welcome to AppDock"
+        Width="600" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="{StaticResource UiFont}">
+  <StackPanel Margin="36,28,36,28">
+    <Image Source="/Assets/AppDock.png" Width="64" Height="64" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality" />
+    <TextBlock Text="Welcome to AppDock" FontFamily="{StaticResource DisplayFont}" FontSize="28" FontWeight="SemiBold" Margin="0,16,0,4" />
+    <TextBlock Text="Keep your most important app docked at the side of the screen, like the taskbar."
+               Style="{StaticResource CardDescription}" FontSize="14" />
+
+    <Border Style="{StaticResource Card}" Margin="0,24,0,4">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="&#xE8A0;" Style="{StaticResource CardIcon}" />
+        <StackPanel Grid.Column="1">
+          <TextBlock Text="Docks like the taskbar" Style="{StaticResource CardTitle}" />
+          <TextBlock Text="Other windows, even maximized ones, make room for it instead of covering it." Style="{StaticResource CardDescription}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Border Style="{StaticResource Card}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="&#xE7C2;" Style="{StaticResource CardIcon}" />
+        <StackPanel Grid.Column="1">
+          <TextBlock Text="Drag it anywhere" Style="{StaticResource CardTitle}" />
+          <TextBlock Text="Drop it on any screen edge to dock it there, or in the middle to float it. Drag its inner edge to resize." Style="{StaticResource CardDescription}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Border Style="{StaticResource Card}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="&#xE765;" Style="{StaticResource CardIcon}" />
+        <StackPanel Grid.Column="1">
+          <TextBlock Text="Double-tap Ctrl to hide or show it" Style="{StaticResource CardTitle}" />
+          <TextBlock Text="The space is freed while it is hidden. You can change the shortcut in Settings." Style="{StaticResource CardDescription}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <TextBlock Text="Which app do you want to dock?" Style="{StaticResource SectionHeader}" />
+    <RadioButton x:Name="ClaudeChoice" Content="Claude" IsChecked="True" GroupName="Target" Margin="2,0,0,8" />
+    <RadioButton x:Name="OtherChoice" Content="Another app (you will click its window next)" GroupName="Target" Margin="2,0,0,0" />
+
+    <CheckBox x:Name="StartupBox" Content="Start AppDock with Windows" IsChecked="True" Margin="2,20,0,0" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,28,0,0">
+      <Button Content="Get started" Style="{DynamicResource AccentButtonStyle}" MinWidth="120" IsDefault="True" Click="OnGetStarted" />
+    </StackPanel>
+  </StackPanel>
+</Window>
