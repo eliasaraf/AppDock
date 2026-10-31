@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 - 2026-10-31
+
+- Installer is now about 2 MB instead of 60 MB: AppDock uses the shared .NET 10 Desktop Runtime. Machines without
+  it get Windows' prompt to download it from Microsoft on first launch.
+
 ## 1.0.0 - 2026-10-31
 
 First release.

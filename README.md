@@ -13,11 +13,13 @@ Dock any Windows application to a screen edge like the taskbar. Built for keepin
 ## Install
 
 Run `AppDock-<version>-x64.msi`. It installs per user (no administrator rights) to
-`%LOCALAPPDATA%\Programs\AppDock`, adds a Start menu shortcut and starts AppDock. The exe is self-contained; no
-.NET installation is needed. Upgrades install over older versions and keep settings; uninstalling stops AppDock,
+`%LOCALAPPDATA%\Programs\AppDock`, adds a Start menu shortcut and starts AppDock. The download is small
+because AppDock uses the shared .NET 10 Desktop Runtime; if a machine does not have it, Windows offers
+Microsoft's download the first time AppDock starts (one time, about 55 MB). Upgrades install over older versions and keep settings; uninstalling stops AppDock,
 releases any reserved screen space and removes the autostart entry.
 
-Requirements: Windows 10 (2004+) or Windows 11, x64.
+Requirements: Windows 10 (2004+) or Windows 11, x64, and the
+[.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64).
 
 ## Use
 

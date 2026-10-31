@@ -5,7 +5,8 @@
 .DESCRIPTION
   1. Builds everything with warnings as errors.
   2. Runs unit tests (and, with -Integration, the end-to-end tests that drive real windows).
-  3. Publishes a self-contained, single-file AppDock.exe (no .NET install needed on target machines).
+  3. Publishes a small single-file AppDock.exe that uses the shared .NET 10 Desktop Runtime (if a machine lacks
+     it, Windows offers Microsoft's download on first launch).
   4. Optionally Authenticode-signs the exe and the installer.
   5. Builds the per-user MSI installer.
 
@@ -61,8 +62,7 @@ if (-not $SkipTests) {
 Step 'Publish'
 if (Test-Path $publish) { Remove-Item $publish -Recurse -Force }
 Run dotnet @('publish', (Join-Path $root 'src\AppDock\AppDock.csproj'), '-c', $Configuration, '-r', 'win-x64',
-    '--self-contained', '-p:PublishSingleFile=true', '-p:IncludeNativeLibrariesForSelfExtract=true',
-    '-p:EnableCompressionInSingleFile=true', '-p:DebugType=none', "-p:Version=$Version", '-o', $publish, '--nologo')
+    '--self-contained', 'false', '-p:PublishSingleFile=true', '-p:DebugType=none', "-p:Version=$Version", '-o', $publish, '--nologo')
 Copy-Item (Join-Path $root 'LICENSE.txt') $publish
 
 function Sign([string]$file) {
