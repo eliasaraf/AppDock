@@ -86,11 +86,12 @@ Debug builds include an "AppDock Test Target" profile; run `tools/AppDock.TestTa
 ## Release
 
 ```
-.\build\build.ps1 [-Version 1.1.0] [-Integration] [-CertificateThumbprint <sha1>]
+.\build\build.ps1 [-Version 1.1.0] [-Integration] [-CertificateThumbprint <sha1>] [-Unsigned]
 ```
 
-Builds with warnings as errors, runs the tests, publishes the single-file exe, signs it (when a code-signing
-certificate thumbprint is given) and builds `artifacts\AppDock-<version>-x64.msi`. Then publish it:
+Builds with warnings as errors, runs the tests, publishes the single-file exe, signs the exe and the installer and
+builds `artifacts\AppDock-<version>-x64.msi`. Every run raises `build\build-number.txt`, so each build gets its own
+version: `<major.minor>.<build number>`, with major.minor set in `Directory.Build.props`. Then publish it:
 
 ```
 gh release create v<version> artifacts\AppDock-<version>-x64.msi --title "AppDock <version>" --notes-file CHANGELOG.md
@@ -101,16 +102,14 @@ and show a notification that opens the release page when a newer version exists.
 
 ### Code signing with a self-made certificate
 
-Unsigned builds work but Windows warns on first run. Without a purchased certificate you can use your own,
-trusted only on machines where you install it:
+Builds are signed with a self-signed development certificate shared by all projects on the build PC
+(`CN=Saraf Code Signing` in `Cert:\CurrentUser\My`). `build.ps1` creates it on first use through
+`build\new-signing-cert.ps1`. Its private key cannot be exported and has no backup: on a new PC, a new certificate is
+created and has to be trusted again.
 
-```
-.\build\new-signing-cert.ps1                    # once, on the build PC: creates the cert, prints its thumbprint
-.\build\build.ps1 -CertificateThumbprint <thumbprint>
-```
-
-On each target machine, as administrator: `.\install-certificate.ps1 AppDock-signing.cer` (both files are in
-`artifacts\signing`). The private key stays in your user certificate store on the build PC; never commit it.
+The installer does not install the certificate, so signatures are only trusted on machines where you trust it
+yourself. On each one, as administrator: `.\install-certificate.ps1 Saraf-code-signing.cer` (both files are in
+`artifacts\signing`). Everything signed with this certificate is then trusted there, across all projects.
 SmartScreen may still warn for downloaded files until they gain reputation.
 
 ## License

@@ -7,8 +7,12 @@
   2. Runs unit tests (and, with -Integration, the end-to-end tests that drive real windows).
   3. Publishes a small single-file AppDock.exe that uses the shared .NET 10 Desktop Runtime (if a machine lacks
      it, Windows offers Microsoft's download on first launch).
-  4. Optionally Authenticode-signs the exe and the installer.
+  4. Authenticode-signs the exe and the installer with the global development certificate (created on first use,
+     see new-signing-cert.ps1) or the certificate given by -CertificateThumbprint.
   5. Builds the per-user MSI installer.
+
+  Every run raises build\build-number.txt, so each build gets its own version (<major.minor>.<build number>). A
+  failed build uses up its number too. -Version builds that exact version and leaves the number alone.
 
   Output: artifacts\AppDock-<version>-x64.msi and artifacts\publish\AppDock.exe
 
@@ -16,6 +20,7 @@
   .\build\build.ps1
   .\build\build.ps1 -Integration
   .\build\build.ps1 -Version 1.1.0 -CertificateThumbprint 0123ABCD...
+  .\build\build.ps1 -Unsigned
 #>
 [CmdletBinding()]
 param(
@@ -25,6 +30,7 @@ param(
     [switch]$SkipTests,
     # Thumbprint of a code-signing certificate in the current user's or machine's certificate store.
     [string]$CertificateThumbprint,
+    [switch]$Unsigned,
     [string]$TimestampUrl = 'http://timestamp.digicert.com'
 )
 
@@ -40,7 +46,14 @@ function Run([string]$exe, [string[]]$arguments) {
 }
 
 if (-not $Version) {
-    $Version = ([xml](Get-Content (Join-Path $root 'Directory.Build.props'))).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+    $majorMinor = ([xml](Get-Content (Join-Path $root 'Directory.Build.props'))).Project.PropertyGroup.VersionMajorMinor | Where-Object { $_ } | Select-Object -First 1
+    $numberFile = Join-Path $PSScriptRoot 'build-number.txt'
+    $number = [int](Get-Content $numberFile -Raw).Trim() + 1
+    Set-Content $numberFile $number -Encoding ascii
+    $Version = "$majorMinor.$number"
+}
+if (-not $CertificateThumbprint -and -not $Unsigned) {
+    $CertificateThumbprint = & (Join-Path $PSScriptRoot 'new-signing-cert.ps1')
 }
 Write-Host "AppDock $Version ($Configuration)"
 

@@ -1,9 +1,10 @@
 <#
 .SYNOPSIS
-  Trusts the AppDock self-signed code-signing certificate on this machine (run as administrator).
+  Trusts the self-signed development code-signing certificate on this machine (run as administrator).
+  Everything signed with it, in any project, is then trusted here.
 
 .EXAMPLE
-  .\install-certificate.ps1 .\AppDock-signing.cer
+  .\install-certificate.ps1 .\Saraf-code-signing.cer
 #>
 param([Parameter(Mandatory)][string]$CertificatePath)
 
@@ -16,4 +17,4 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 # Root: the self-signed certificate is its own issuer. TrustedPublisher: Windows trusts what it signs.
 Import-Certificate -FilePath $CertificatePath -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
 Import-Certificate -FilePath $CertificatePath -CertStoreLocation Cert:\LocalMachine\TrustedPublisher | Out-Null
-Write-Host 'AppDock signing certificate installed.'
+Write-Host 'Code-signing certificate installed.'
