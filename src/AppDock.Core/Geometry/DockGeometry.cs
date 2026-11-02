@@ -159,6 +159,29 @@ public static class DockGeometry
             height);
     }
 
+    /// <summary>
+    /// Whether a modal move/size loop that started at <paramref name="start"/> is a move or a resize, judged from
+    /// the window rect <paramref name="now"/>. A move shifts every side by the same amount (some apps adjust their
+    /// size by a pixel or two while moving); a resize changes the size. A change of a pixel or two in both size and
+    /// position is ambiguous (e.g. the first pixel of a resize), so it stays <see cref="MoveSizeKind.Unknown"/>.
+    /// </summary>
+    public static MoveSizeKind ClassifyMoveSize(Rect start, Rect now, int tolerance = 2)
+    {
+        var dLeft = now.Left - start.Left;
+        var dTop = now.Top - start.Top;
+        var dWidth = Math.Abs(now.Width - start.Width);
+        var dHeight = Math.Abs(now.Height - start.Height);
+        if (dWidth > tolerance || dHeight > tolerance)
+        {
+            return MoveSizeKind.Resize;
+        }
+
+        var shifted = dWidth == 0 && dHeight == 0
+            ? dLeft != 0 || dTop != 0
+            : Math.Abs(dLeft) > tolerance || Math.Abs(dTop) > tolerance;
+        return shifted ? MoveSizeKind.Move : MoveSizeKind.Unknown;
+    }
+
     public static Rect Lerp(Rect from, Rect to, double t) => new(
         Lerp(from.Left, to.Left, t),
         Lerp(from.Top, to.Top, t),
@@ -166,6 +189,13 @@ public static class DockGeometry
         Lerp(from.Bottom, to.Bottom, t));
 
     private static int Lerp(int a, int b, double t) => (int)Math.Round(a + ((b - a) * t));
+}
+
+public enum MoveSizeKind
+{
+    Unknown,
+    Move,
+    Resize,
 }
 
 /// <summary>Easing curves for window animations.</summary>
