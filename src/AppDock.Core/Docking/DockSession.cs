@@ -30,6 +30,12 @@ public sealed class DockSession : IDisposable
     private const int OwnMoveGraceMs = 250;
     private const int MaxEnforceAttempts = 3;
 
+    // After a reservation changes the work area, Windows pushes visible windows that overlap the new strip back
+    // into the work area, with its own (DWM-animated) move. Undoing that push at once, before DWM renders a frame,
+    // keeps it invisible; undoing it later (Enforce) shows it as a slide followed by a jump.
+    private const int ShellNudgeGuardMs = 1500;
+    private const int MaxNudgeCorrections = 4;
+
     private readonly TargetProfile _profile;
     private readonly AppSettings _settings;
     private readonly SettingsStore _store;
@@ -56,7 +62,7 @@ public sealed class DockSession : IDisposable
 
     // Drag tracking.
     private bool _inMoveSize;
-    private Gesture _gesture;
+    private MoveSizeKind _gesture;
     private Rect _moveSizeStartRect;
     private DockEdge? _previewEdge;
     private string? _previewMonitor;
@@ -66,6 +72,14 @@ public sealed class DockSession : IDisposable
     private int _enforceAttempts;
     private long _enforceWindowStart;
     private long _ownMoveTick;
+
+    // Shell nudge guard (see ShellNudgeGuardMs).
+    private Rect _settledWindowRect;
+    private long _nudgeGuardUntil;
+    private int _nudgeCorrections;
+
+    // Frame borders measured while the window was last on screen (DWM reports nonsense for off-screen windows).
+    private Margins? _parkMargins;
 
     public DockSession(TargetProfile profile, SettingsStore store, ILogger log)
     {
@@ -81,13 +95,6 @@ public sealed class DockSession : IDisposable
         _bar.FullScreenChanged += OnFullScreenChanged;
         _state = DockState.Initial(profile.RestoreDockOnLaunch ? profile.Edge : null, profile.Monitor);
         ApplyAnimationSettings();
-    }
-
-    private enum Gesture
-    {
-        Unknown,
-        Move,
-        Resize,
     }
 
     /// <summary>State or target changed (for tray text, settings UI).</summary>
@@ -419,6 +426,9 @@ public sealed class DockSession : IDisposable
     private void ReserveSpace()
     {
         var monitor = ResolveMonitor();
+
+        // Armed before reserving: the shell can push the window (and we can hear of it) before ABM_SETPOS returns.
+        GuardAgainstShellNudge();
         var granted = _bar.Reserve(_state.Edge, monitor.Bounds, ThicknessPixels(monitor, _state.Edge));
         _log.Debug("Reserved {Granted} (expected {Expected})", granted, _expectedRect);
         if (!granted.NearlyEquals(_expectedRect))
@@ -426,6 +436,7 @@ public sealed class DockSession : IDisposable
             _expectedRect = granted;
             MarkOwnMove();
             _animator.Set(_hwnd, granted);
+            GuardAgainstShellNudge();
         }
 
         _enforceAttempts = 0;
@@ -440,8 +451,39 @@ public sealed class DockSession : IDisposable
         });
     }
 
+    /// <summary>Remember where the window is now and, for a short while, put it straight back if the shell moves it.</summary>
+    private void GuardAgainstShellNudge()
+    {
+        _settledWindowRect = WindowOps.GetWindowRect(_hwnd);
+        _nudgeCorrections = 0;
+        _nudgeGuardUntil = _settledWindowRect.IsEmpty ? 0 : Environment.TickCount64 + ShellNudgeGuardMs;
+    }
+
+    private bool TryUndoShellNudge()
+    {
+        if (Environment.TickCount64 > _nudgeGuardUntil || !_state.ReservesSpace || _animator.IsAnimating ||
+            _nudgeCorrections >= MaxNudgeCorrections || WindowOps.IsMinimized(_hwnd) || WindowOps.IsMaximized(_hwnd) ||
+            !WindowOps.IsVisible(_hwnd))
+        {
+            return false;
+        }
+
+        var actual = WindowOps.GetWindowRect(_hwnd);
+        if (actual == _settledWindowRect || actual.IsEmpty)
+        {
+            return false;
+        }
+
+        _nudgeCorrections++;
+        _log.Debug("Undoing shell nudge: window at {Actual}, back to {Settled}", actual, _settledWindowRect);
+        MarkOwnMove();
+        WindowOps.SetVisibleRect(_hwnd, _settledWindowRect, Margins.Zero);
+        return true;
+    }
+
     private void ReleaseSpace()
     {
+        _nudgeGuardUntil = 0;
         _bar.Release();
         _expectedRect = default;
         if (_hwnd != 0 && !_originalTopmost && WindowOps.Exists(_hwnd))
@@ -481,17 +523,20 @@ public sealed class DockSession : IDisposable
     private async Task SlideOutAsync()
     {
         var current = WindowOps.GetVisibleRect(_hwnd);
+        var margins = WindowOps.GetFrameMargins(_hwnd);
+        _parkMargins = margins;
         var monitor = ResolveMonitor();
         var offscreen = DockGeometry.Offscreen(current, _state.Edge, monitor.Bounds);
         if (DockGeometry.CanSlide(offscreen, Monitors.All().Select(m => m.Bounds)) && !WindowOps.IsMinimized(_hwnd))
         {
-            await MoveAsync(offscreen, animate: true).ConfigureAwait(true);
+            MarkOwnMove();
+            await _animator.AnimateAsync(_hwnd, current, offscreen, margins).ConfigureAwait(true);
             MarkOwnMove();
             WindowOps.Hide(_hwnd);
 
             // Park it back in place while hidden, so anything that shows it (its own tray icon, a crash of
             // AppDock) brings it back on screen rather than off-screen.
-            WindowOps.SetVisibleRect(_hwnd, current);
+            WindowOps.SetVisibleRect(_hwnd, current, margins);
         }
         else
         {
@@ -513,13 +558,29 @@ public sealed class DockSession : IDisposable
         }
 
         var visible = WindowOps.IsVisible(_hwnd);
-        if (!visible && _animator.Enabled && WindowOps.SystemAnimationsEnabled() &&
-            DockGeometry.CanSlide(offscreen, Monitors.All().Select(m => m.Bounds)))
+        if (!visible && DockGeometry.CanSlide(offscreen, Monitors.All().Select(m => m.Bounds)))
         {
+            // Show it parked just past the edge and reserve the strip while it is there. Windows pushes visible
+            // windows that overlap a newly reserved strip into the work area (hidden ones when they are shown),
+            // but leaves a window that is fully off-screen alone. Reserving after sliding in instead would make
+            // Windows visibly drag it out of the strip again.
+            var margins = _parkMargins ?? WindowOps.GetFrameMargins(_hwnd);
             MarkOwnMove();
-            _animator.Set(_hwnd, offscreen);
+            _animator.Set(_hwnd, offscreen, margins);
             WindowOps.Show(_hwnd, activate: false);
-            await MoveAsync(target, animate: true).ConfigureAwait(true);
+            target = _bar.Reserve(_state.Edge, monitor.Bounds, ThicknessPixels(monitor, _state.Edge));
+            _expectedRect = target;
+            MarkOwnMove();
+            if (_animator.Enabled && WindowOps.SystemAnimationsEnabled())
+            {
+                await _animator.AnimateAsync(_hwnd, offscreen, target, margins).ConfigureAwait(true);
+            }
+            else
+            {
+                _animator.Set(_hwnd, target, margins);
+            }
+
+            MarkOwnMove();
         }
         else
         {
@@ -698,7 +759,8 @@ public sealed class DockSession : IDisposable
     private void OnMoveSizeStarted()
     {
         _inMoveSize = true;
-        _gesture = Gesture.Unknown;
+        _nudgeGuardUntil = 0; // the user owns the window now
+        _gesture = MoveSizeKind.Unknown;
         _moveSizeStartRect = WindowOps.GetVisibleRect(_hwnd);
         _previewEdge = null;
         _previewMonitor = null;
@@ -716,7 +778,17 @@ public sealed class DockSession : IDisposable
         _inMoveSize = false;
         RestoreWindowsSnap();
         SnapPreviewChanged?.Invoke(null);
-        var gesture = _gesture;
+        var gesture = _gesture == MoveSizeKind.Unknown
+            ? DockGeometry.ClassifyMoveSize(_moveSizeStartRect, WindowOps.GetVisibleRect(_hwnd))
+            : _gesture;
+
+        // Still ambiguous (a pixel or two): for a docked window that is a tiny resize; re-applying the dock with the
+        // measured thickness is always right. Never let it count as dragging the window away.
+        if (gesture == MoveSizeKind.Unknown && _state.ReservesSpace)
+        {
+            gesture = MoveSizeKind.Resize;
+        }
+
         var cursor = WindowOps.GetCursorPos();
         _log.Debug("Move/size ended: {Gesture} at {Cursor}, window {Rect}", gesture, cursor, WindowOps.GetVisibleRect(_hwnd));
 
@@ -730,13 +802,13 @@ public sealed class DockSession : IDisposable
 
             switch (gesture)
             {
-                case Gesture.Move:
+                case MoveSizeKind.Move:
                     var monitor = Monitors.FromPoint(cursor);
                     var edge = DockGeometry.HitTestEdge(cursor, monitor.Bounds, monitor.ToPixels(_settings.SnapThresholdDip));
                     Enqueue(new DragEnded(edge, monitor.DeviceName, cursor));
                     break;
 
-                case Gesture.Resize:
+                case MoveSizeKind.Resize:
                     if (_state.ReservesSpace)
                     {
                         var r = WindowOps.GetVisibleRect(_hwnd);
@@ -774,6 +846,11 @@ public sealed class DockSession : IDisposable
             return;
         }
 
+        if (TryUndoShellNudge())
+        {
+            return;
+        }
+
         if (!IsOwnMove())
         {
             ScheduleEnforce();
@@ -782,16 +859,13 @@ public sealed class DockSession : IDisposable
 
     private void TrackDrag()
     {
-        var r = WindowOps.GetVisibleRect(_hwnd);
-        if (_gesture == Gesture.Unknown && r != _moveSizeStartRect)
+        if (_gesture == MoveSizeKind.Unknown)
         {
-            // Size change = resize gesture. Small tolerance: some apps adjust by a pixel while moving.
-            var resized = Math.Abs(r.Width - _moveSizeStartRect.Width) > 2 ||
-                          Math.Abs(r.Height - _moveSizeStartRect.Height) > 2;
-            _gesture = resized ? Gesture.Resize : Gesture.Move;
+            // Decide only once the change is unambiguous: the first pixel of a resize looks like a move.
+            _gesture = DockGeometry.ClassifyMoveSize(_moveSizeStartRect, WindowOps.GetVisibleRect(_hwnd));
         }
 
-        if (_gesture != Gesture.Move)
+        if (_gesture != MoveSizeKind.Move)
         {
             return;
         }

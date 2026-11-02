@@ -29,7 +29,9 @@ public sealed class WindowAnimator
     /// <summary>Jump the running animation to its end (used when a new command arrives mid-animation).</summary>
     public void FastForward() => _fastForward = true;
 
-    public async Task AnimateAsync(nint hwnd, Rect from, Rect to)
+    /// <param name="margins">The window's invisible frame borders; measured now when omitted. Pass them when the window
+    /// is off-screen or hidden, where DWM reports unreliable frame bounds.</param>
+    public async Task AnimateAsync(nint hwnd, Rect from, Rect to, Margins? margins = null)
     {
         Task previous;
         CancellationTokenSource cts;
@@ -49,17 +51,17 @@ public sealed class WindowAnimator
         {
         }
 
-        var margins = WindowOps.GetFrameMargins(hwnd);
+        var m = margins ?? WindowOps.GetFrameMargins(hwnd);
         var animate = Enabled && Duration > TimeSpan.Zero && from != to && !from.IsEmpty &&
                       WindowOps.SystemAnimationsEnabled();
         if (!animate)
         {
-            Apply(hwnd, to, margins, async: false, keepSize: false);
+            Apply(hwnd, to, m, async: false, keepSize: false);
             return;
         }
 
         _fastForward = false;
-        var run = Task.Run(() => Run(hwnd, from, to, margins, cts.Token), CancellationToken.None);
+        var run = Task.Run(() => Run(hwnd, from, to, m, cts.Token), CancellationToken.None);
         lock (_lock)
         {
             _current = run;
@@ -69,14 +71,14 @@ public sealed class WindowAnimator
     }
 
     /// <summary>Set a rect immediately, cancelling any running animation.</summary>
-    public void Set(nint hwnd, Rect to)
+    public void Set(nint hwnd, Rect to, Margins? margins = null)
     {
         lock (_lock)
         {
             _cts?.Cancel();
         }
 
-        Apply(hwnd, to, WindowOps.GetFrameMargins(hwnd), async: false, keepSize: false);
+        Apply(hwnd, to, margins ?? WindowOps.GetFrameMargins(hwnd), async: false, keepSize: false);
     }
 
     private void Run(nint hwnd, Rect from, Rect to, Margins margins, CancellationToken token)

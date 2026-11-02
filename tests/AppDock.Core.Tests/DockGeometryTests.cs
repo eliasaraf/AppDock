@@ -126,4 +126,20 @@ public class DockGeometryTests
         Assert.True(r.NearlyEquals(r.Offset(1, -1)));
         Assert.False(r.NearlyEquals(r.Offset(3, 0)));
     }
+
+    [Theory]
+    [InlineData(-1, 0, 0, 0, MoveSizeKind.Unknown)] // first pixel of a left-edge resize looks like a move
+    [InlineData(-2, 0, 0, 0, MoveSizeKind.Unknown)]
+    [InlineData(-3, 0, 0, 0, MoveSizeKind.Resize)]
+    [InlineData(0, 0, 0, 40, MoveSizeKind.Resize)]
+    [InlineData(-1, 0, -1, 0, MoveSizeKind.Move)] // pure shift, however small
+    [InlineData(30, 10, 30, 10, MoveSizeKind.Move)]
+    [InlineData(30, 0, 29, 0, MoveSizeKind.Move)] // app adjusts its size by a pixel while moving
+    [InlineData(0, 0, 0, 0, MoveSizeKind.Unknown)]
+    public void ClassifyMoveSize_waits_until_unambiguous(int dl, int dt, int dr, int db, MoveSizeKind expected)
+    {
+        var start = new Rect(1480, 0, 1920, 1032);
+        var now = new Rect(start.Left + dl, start.Top + dt, start.Right + dr, start.Bottom + db);
+        Assert.Equal(expected, DockGeometry.ClassifyMoveSize(start, now));
+    }
 }
