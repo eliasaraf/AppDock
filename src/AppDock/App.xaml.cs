@@ -9,6 +9,7 @@ using AppDock.Core.Docking;
 using AppDock.Core.Input;
 using AppDock.Core.Settings;
 using AppDock.Core.Targeting;
+using AppDock.Core.Updates;
 using AppDock.Core.Windows;
 using AppDock.Services;
 using AppDock.Views;
@@ -21,11 +22,14 @@ namespace AppDock;
 /// <summary>
 /// Composition root. Command line: --startup (launched by Windows), --reset (restore default settings),
 /// --verbose (debug logging), --shutdown (ask a running instance to exit), --uninstall (exit + remove autostart).
+/// Internal: --apply-update (the helper copy that runs a silent update), --after-update (started by that helper).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification = "Application lifetime: disposed in Cleanup on exit.")]
 public partial class App : Application
 {
     private const int MaxErrorsPerMinute = 3;
+    private static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromHours(6);
+    private static readonly TimeSpan UpdateIdleThreshold = TimeSpan.FromMinutes(15);
 
     private SingleInstance? _instance;
     private SettingsStore? _store;
@@ -50,6 +54,15 @@ public partial class App : Application
         var args = e.Args;
         ConfigureLogging(verbose: args.Contains("--verbose"));
 
+        // Before the single-instance check: the helper is not a running AppDock and must not disturb one.
+        var applyUpdate = Array.IndexOf(args, AutoUpdater.ApplyUpdateArgument);
+        if (applyUpdate >= 0 && applyUpdate + 1 < args.Length)
+        {
+            AutoUpdater.RunInstallAndRelaunch(args[applyUpdate + 1]);
+            QuitEarly();
+            return;
+        }
+
         _instance = SingleInstance.Acquire(
             onActivate: () => Dispatcher.BeginInvoke(ShowSettings),
             onShutdown: () => Dispatcher.BeginInvoke(ExitApp));
@@ -65,6 +78,7 @@ public partial class App : Application
             if (args.Contains("--uninstall"))
             {
                 StartupRegistration.Set(false);
+                AutoUpdater.DeleteAll();
             }
 
             QuitEarly();
@@ -86,6 +100,17 @@ public partial class App : Application
         if (args.Contains("--reset"))
         {
             _store.ResetToDefaults();
+        }
+
+        // Nothing is docked yet, so this is the least visible moment to update. After a failed try, wait for idle.
+        AutoUpdater.CleanUp();
+        if (!args.Contains(AutoUpdater.AfterUpdateArgument) &&
+            UpdateChecker.IsConfigured(_store.Settings.UpdateFeedUrl) &&
+            AutoUpdater.FindPending() is { } pendingUpdate &&
+            AutoUpdater.TryStartInstall(pendingUpdate))
+        {
+            QuitEarly();
+            return;
         }
 
         _ui = new MessageWindow("AppDock.Main");
@@ -135,7 +160,7 @@ public partial class App : Application
             }
         }
 
-        _ = CheckForUpdatesAsync();
+        _ = RunUpdateLoopAsync();
 #if DEBUG
         if (args.Contains("--debug-tray-menu"))
         {
@@ -354,22 +379,60 @@ public partial class App : Application
         StartupRegistration.Set(_store.Settings.StartWithWindows);
     }
 
-    private async Task CheckForUpdatesAsync()
+    /// <summary>Keeps AppDock current without interrupting: checks now and then, installs only when nobody is using the PC.</summary>
+    private async Task RunUpdateLoopAsync()
     {
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(20), _lifetime.Token);
-            var release = await UpdateChecker.CheckAsync(_store?.Settings.UpdateFeedUrl, _lifetime.Token);
-            if (release is not null)
+            var nextCheck = DateTime.UtcNow;
+            string? notifiedVersion = null;
+            while (true)
             {
-                Log.Information("Update available: {Version}", release.Version);
-                _tray?.Notify($"AppDock {release.Version} is available. Click to download it.", NotificationKind.Info,
-                    force: true, onClick: () => AppInfo.OpenUrl(release.Url));
+                var feedUrl = _store?.Settings.UpdateFeedUrl;
+                if (DateTime.UtcNow >= nextCheck)
+                {
+                    nextCheck = DateTime.UtcNow + UpdateCheckInterval;
+                    var release = await UpdateChecker.CheckAsync(feedUrl, _lifetime.Token);
+                    if (release is not null && release.Version != notifiedVersion && await NeedsManualInstallAsync(release))
+                    {
+                        notifiedVersion = release.Version;
+                        Log.Information("Update available: {Version}", release.Version);
+                        _tray?.Notify($"AppDock {release.Version} is available. Click to download it.", NotificationKind.Info,
+                            force: true, onClick: () => AppInfo.OpenUrl(release.Url));
+                    }
+                }
+
+                if (UpdateChecker.IsConfigured(feedUrl) && CanInstallUpdateNow() &&
+                    AutoUpdater.FindPending() is { } installer && AutoUpdater.TryStartInstall(installer))
+                {
+                    ExitApp();
+                    return;
+                }
+
+                await Task.Delay(TimeSpan.FromMinutes(1), _lifetime.Token);
             }
         }
         catch (OperationCanceledException)
         {
         }
+    }
+
+    private async Task<bool> NeedsManualInstallAsync(UpdateChecker.Release release)
+    {
+        if (!AutoUpdater.CanSelfUpdate || UpdatePolicy.Classify(AppInfo.Version, release.Version) != UpdateAction.InstallSilently)
+        {
+            return true;
+        }
+
+        return await AutoUpdater.PrepareAsync(release, _lifetime.Token) == PrepareResult.NeedsManualInstall;
+    }
+
+    private bool CanInstallUpdateNow()
+    {
+        var session = _manager?.Active;
+        return UserActivity.IsIdleFor(UpdateIdleThreshold) &&
+               UpdatePolicy.RestartKeepsDockState(session?.Profile.RestoreDockOnLaunch ?? true, session?.State);
     }
 
     // ---- Logging and crash handling ----

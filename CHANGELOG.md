@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.10 - 2026-11-02
+
+- Updates within the same major version now download and install silently, when the PC is idle or at the next start.
+  New major versions still show a notification. Versions before this one have to install it by hand.
+
 ## 1.0.6 - 2026-11-02
 
 - Every build gets its own version number (`1.0.<build number>`).

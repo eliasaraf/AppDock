@@ -97,8 +97,19 @@ version: `<major.minor>.<build number>`, with major.minor set in `Directory.Buil
 gh release create v<version> artifacts\AppDock-<version>-x64.msi --title "AppDock <version>" --notes-file CHANGELOG.md
 ```
 
-Running AppDocks check `https://api.github.com/repos/eliasaraf/AppDock/releases/latest` (setting `updateFeedUrl`)
-and show a notification that opens the release page when a newer version exists.
+Running AppDocks check `https://api.github.com/repos/eliasaraf/AppDock/releases/latest` (setting `updateFeedUrl`, empty
+turns this off) at startup and every 6 hours.
+
+- **Same major version:** the installer is downloaded in the background and installed without any UI after 15 minutes
+  without input, or at the next AppDock start. It waits for the next start if a restart would change the dock state
+  (for example the app is hidden with the hotkey), and while a full-screen app is running.
+- **New major version, or a silent install is not possible:** a notification opens the release page.
+
+A silent install needs the installer named `AppDock-<version>-x64.msi` on the release, a matching GitHub SHA-256, and a
+signature from the same certificate as the running build. After three failed installs of a version, AppDock falls back
+to the notification. Details are in `%LOCALAPPDATA%\AppDock\updates\install.log` and the AppDock log.
+
+Building on a new PC creates a new certificate, so users then have to install one release by hand.
 
 ### Code signing with a self-made certificate
 
