@@ -1,31 +1,36 @@
 <#
 .SYNOPSIS
-  Creates a self-signed code-signing certificate for AppDock (run once on the build PC).
+  Finds the global development code-signing certificate on this PC, creating it if needed. Outputs its thumbprint.
 
 .DESCRIPTION
-  The certificate and its private key go into your user certificate store (Cert:\CurrentUser\My).
-  The public part is exported to artifacts\signing\AppDock-signing.cer together with install-certificate.ps1,
-  which you run on target machines so they trust AppDock's signature. Never share or commit the private key.
+  One self-signed certificate shared by all projects, so run this from any of them. It lives with its private key in
+  your user certificate store (Cert:\CurrentUser\My). The key cannot be exported and is not backed up; on a new PC a
+  new certificate is created and has to be trusted again.
+
+  The public part is exported to artifacts\signing\Saraf-code-signing.cer together with install-certificate.ps1,
+  which you run on machines that should trust the signature.
 #>
 param(
-    [string]$Subject = 'CN=Saraf AppDock Code Signing',
+    [string]$Subject = 'CN=Saraf Code Signing',
     [int]$Years = 5
 )
 
 $ErrorActionPreference = 'Stop'
-$cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $Subject -KeyAlgorithm RSA -KeyLength 3072 `
-    -HashAlgorithm SHA256 -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears($Years) `
-    -KeyExportPolicy NonExportable
+$cert = Get-ChildItem Cert:\CurrentUser\My |
+    Where-Object { $_.Subject -eq $Subject -and $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) } |
+    Sort-Object NotAfter -Descending | Select-Object -First 1
 
 $out = Join-Path $PSScriptRoot '..\artifacts\signing'
 New-Item -ItemType Directory -Force $out | Out-Null
-Export-Certificate -Cert $cert -FilePath (Join-Path $out 'AppDock-signing.cer') | Out-Null
+$cer = Join-Path $out 'Saraf-code-signing.cer'
+
+if (-not $cert) {
+    $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $Subject -KeyAlgorithm RSA -KeyLength 3072 `
+        -HashAlgorithm SHA256 -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears($Years) `
+        -KeyExportPolicy NonExportable
+    Write-Host "Created $Subject ($($cert.Thumbprint))"
+}
+
+Export-Certificate -Cert $cert -FilePath $cer | Out-Null
 Copy-Item (Join-Path $PSScriptRoot 'install-certificate.ps1') $out -Force
-
-# Trust it on this PC too, so signatures verify here.
-Import-Certificate -FilePath (Join-Path $out 'AppDock-signing.cer') -CertStoreLocation Cert:\CurrentUser\TrustedPublisher | Out-Null
-
-Write-Host "Created $Subject"
-Write-Host "Thumbprint: $($cert.Thumbprint)"
-Write-Host "Build signed:   .\build\build.ps1 -CertificateThumbprint $($cert.Thumbprint)"
-Write-Host "Target machines: copy $out and run install-certificate.ps1 as administrator."
+$cert.Thumbprint

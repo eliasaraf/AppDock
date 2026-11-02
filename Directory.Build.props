@@ -5,7 +5,11 @@
     <Company>Saraf</Company>
     <Authors>Saraf</Authors>
     <Copyright>Copyright (c) 2026 Saraf. All rights reserved.</Copyright>
-    <Version>1.0.1</Version>
+    <!-- Major.minor are set by hand. The third field is the build number, raised by build/build.ps1 on every run
+         (Windows Installer ignores a fourth field when deciding whether to upgrade). -->
+    <VersionMajorMinor>1.0</VersionMajorMinor>
+    <BuildNumber>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)build\build-number.txt').Trim())</BuildNumber>
+    <Version>$(VersionMajorMinor).$(BuildNumber)</Version>
 
     <TargetFramework>net10.0-windows</TargetFramework>
     <LangVersion>latest</LangVersion>
