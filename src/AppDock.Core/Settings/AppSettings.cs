@@ -32,7 +32,7 @@ public sealed class AppSettings
 
     public const string DefaultUpdateFeedUrl = "https://api.github.com/repos/eliasaraf/AppDock/releases/latest";
 
-    /// <summary>GitHub "latest release" API URL for update notifications. Set to empty to turn them off.</summary>
+    /// <summary>GitHub "latest release" API URL for automatic updates and update notifications. Set to empty to turn both off.</summary>
     public string? UpdateFeedUrl { get; set; } = DefaultUpdateFeedUrl;
 
     public TargetProfile? ActiveProfile =>

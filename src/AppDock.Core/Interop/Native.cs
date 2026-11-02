@@ -107,6 +107,40 @@ internal struct TOKEN_ELEVATION
 }
 
 /// <summary>Win32 declarations. Kept internal; wrapped by typed helpers.</summary>
+[StructLayout(LayoutKind.Sequential)]
+internal struct LASTINPUTINFO
+{
+    public uint cbSize;
+    public uint dwTime;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct WINTRUST_FILE_INFO
+{
+    public uint cbStruct;
+    public nint pcwszFilePath;
+    public nint hFile;
+    public nint pgKnownSubject;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct WINTRUST_DATA
+{
+    public uint cbStruct;
+    public nint pPolicyCallbackData;
+    public nint pSIPClientData;
+    public uint dwUIChoice;
+    public uint fdwRevocationChecks;
+    public uint dwUnionChoice;
+    public nint pFile;
+    public uint dwStateAction;
+    public nint hWVTStateData;
+    public nint pwszURLReference;
+    public uint dwProvFlags;
+    public uint dwUIContext;
+    public nint pSignatureSettings;
+}
+
 internal static unsafe class Native
 {
     // ShowWindow
@@ -246,6 +280,28 @@ internal static unsafe class Native
     public delegate bool MonitorEnumProc(nint hMonitor, nint hdc, nint rect, nint data);
 
     // ---- user32: windows ----
+    public const uint WTD_UI_NONE = 2;
+    public const uint WTD_REVOKE_NONE = 0;
+    public const uint WTD_CHOICE_FILE = 1;
+    public const uint WTD_STATEACTION_VERIFY = 1;
+    public const uint WTD_STATEACTION_CLOSE = 2;
+    public const uint WTD_REVOCATION_CHECK_NONE = 0x10;
+    public static readonly Guid WINTRUST_ACTION_GENERIC_VERIFY_V2 = new("00AAC56B-CD44-11D0-8CC2-00C04FC295EE");
+
+    public const int QUNS_NOT_PRESENT = 1;
+    public const int QUNS_ACCEPTS_NOTIFICATIONS = 5;
+    public const int QUNS_QUIET_TIME = 6;
+
+    [DllImport("wintrust.dll", CharSet = CharSet.Unicode)]
+    public static extern int WinVerifyTrust(nint hwnd, ref Guid action, ref WINTRUST_DATA data);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetLastInputInfo(ref LASTINPUTINFO info);
+
+    [DllImport("shell32.dll")]
+    public static extern int SHQueryUserNotificationState(out int state);
+
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool SetWindowPos(nint hwnd, nint insertAfter, int x, int y, int cx, int cy, uint flags);
