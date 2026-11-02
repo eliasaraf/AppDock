@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.6 - 2026-11-02
+
+- Every build gets its own version number (`1.0.<build number>`).
+- Builds are signed automatically with a self-signed development certificate.
+- Installer no longer stalls on "Validating install" when upgrading.
+- Resizing a docked app by its inner edge no longer undocks it when the first mouse movement is tiny.
+- Showing or docking no longer makes the app slide out of its strip and jump back: Windows' push of the window
+  into the work area is undone before it is drawn, and slide-in reserves the strip while the app is still off-screen.
+
 ## 1.0.1 - 2026-10-31
 
 - Installer is now about 2 MB instead of 60 MB: AppDock uses the shared .NET 10 Desktop Runtime. Machines without

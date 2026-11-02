@@ -21,6 +21,12 @@
     <Property Id="ARPNOREPAIR" Value="1" />
 
     <!--
+      Restart Manager stalled "Validating install" for 26-48 s in the full setup UI. It is not needed: the custom
+      actions below already ask a running AppDock to exit, and that happens before this step.
+    -->
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+
+    <!--
       AppDock uses the shared .NET 10 Desktop Runtime (keeps the download small). DOTNETRUNTIMECHECK is "0" when a
       compatible runtime is installed. Without it, launching AppDock shows Windows' own prompt to download it.
     -->
